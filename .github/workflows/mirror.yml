@@ -1,0 +1,39 @@
+
+name: Mirror VIGS-SLAM Docker Image
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Skopeo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+
+      - name: Login to GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GH_TOKEN" | skopeo login ghcr.io \
+            --username "$GITHUB_ACTOR" \
+            --password-stdin
+
+      - name: Copy VIGS-SLAM official image
+        run: |
+          OWNER=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+
+          skopeo copy \
+            --retry-times 3 \
+            docker://docker.io/zhuzihan2000/vigs-slam:latest \
+            docker://ghcr.io/$OWNER/vigs-slam:latest
+
+      - name: Completed
+        run: echo "VIGS-SLAM image copied to GHCR"
